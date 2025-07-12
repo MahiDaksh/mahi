@@ -22,7 +22,7 @@
 
 💬 **Let’s Connect!**
 - 💼 [LinkedIn](https://www.linkedin.com/in/mahendra-b-sonawane-15ba9728/)
-- 📫 Email: yourname@example.com
+- 📫 Email: mahendrasonwane1291988@gmail.com
 
 ---
 
