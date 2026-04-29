@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline 3D Animation Agent</title>
+  <style>
+    :root {
+      --bg: #050508;
+      --panel: #0d0d14;
+      --accent: #e8ff47;
+      --accent2: #ff4b6e;
+      --accent3: #4bf5ff;
+      --viral: #ff6b35;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: white;
+      font-family: 'DM Sans', sans-serif;
+      overflow-x: hidden;
+    }
+    .heading {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 2rem;
+      color: var(--accent);
+      text-align: center;
+      margin: 20px 0;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      gap: 20px;
+    }
+    .story-input {
+      background: var(--panel);
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 800px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .textarea {
+      width: 100%;
+      border: none;
+      outline: none;
+      background: #1a1a2b;
+      color: white;
+      padding: 10px;
+      border-radius: 4px;
+      resize: none;
+      font-size: 1rem;
+      height: 120px;
+    }
+    button {
+      background: var(--accent);
+      color: black;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    button:hover {
+      background: var(--accent2);
+    }
+    .scene-card {
+      background: var(--panel);
+      border-radius: 10px;
+      padding: 15px;
+      width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    canvas {
+      border-radius: 10px;
+    }
+    .scene-metadata {
+      font-size: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm"></script>
+</head>
+<body>
+  <header class="heading">Offline 3D Animation Video Agent</header>
+
+  <main class="container">
+    <!-- Story Input Panel -->
+    <section class="story-input">
+      <label for="story">Enter your story idea:</label>
+      <textarea id="story" class="textarea" placeholder="Once upon a time..."></textarea>
+      <div>
+        <button id="example-story">Example Story</button>
+        <label for="scene-count">Number of scenes:</label>
+        <select id="scene-count">
+          <option value="3">3 Scenes</option>
+          <option value="4">4 Scenes</option>
+          <option value="5">5 Scenes</option>
+        </select>
+      </div>
+      <button id="analyze-story">Analyze Story</button>
+    </section>
+
+    <!-- Scene Cards Section -->
+    <section id="scene-cards" class="container"></section>
+  </main>
+
+  <script>
+    // WebLLM Initialization Placeholder
+    const initWebLLM = async () => {
+      const modelStatus = document.createElement('div');
+      modelStatus.innerText = 'Loading WebLLM...';
+      document.body.appendChild(modelStatus);
+
+      try {
+        const llm = new WebLLM({
+          model: 'https://path-to-model',
+        });
+        await llm.load();
+        modelStatus.innerText = 'Model Loaded';
+        return llm;
+      } catch (e) {
+        modelStatus.innerText = 'Failed to load model: ' + e.message;
+      }
+    };
+
+    // Example Story Prefill
+    document.getElementById('example-story').addEventListener('click', () => {
+      document.getElementById('story').value = 'Example Story: A brave hero sets out to find a legendary artifact...';
+    });
+
+    // Analyze Button Action
+    document.getElementById('analyze-story').addEventListener('click', async () => {
+      const story = document.getElementById('story').value;
+      const sceneCount = document.getElementById('scene-count').value;
+
+      if (!story.trim()) {
+        alert('Please enter a story idea.');
+        return;
+      }
+
+      const llm = await initWebLLM();
+      const prompt = `You are a 3D animation director. Break this story into ${sceneCount} scenes for 3D animation. For each scene return a JSON array with fields: ...`;
+
+      try {
+        const response = await llm.generate(prompt);
+        const scenes = JSON.parse(response);
+        renderScenes(scenes);
+      } catch (e) {
+        console.error('LLM Error:', e);
+        alert('Failed to analyze story. Please try again.');
+      }
+    });
+
+    // Render Scenes
+    const renderScenes = (scenes) => {
+      const sceneCards = document.getElementById('scene-cards');
+      sceneCards.innerHTML = '';
+
+      scenes.forEach(scene => {
+        const card = document.createElement('div');
+        card.className = 'scene-card';
+        card.innerHTML = `
+          <canvas id="scene-${scene.id}"></canvas>
+          <div class="scene-metadata">
+            <strong>${scene.title}</strong>
+            <p>${scene.description}</p>
+          </div>
+        `;
+        sceneCards.appendChild(card);
+        renderThreeJsScene(scene, `scene-${scene.id}`);
+      });
+    };
+
+    // Placeholder Three.js Renderer
+    const renderThreeJsScene = (scene, canvasId) => {
+      const canvas = document.getElementById(canvasId);
+      const renderer = new THREE.WebGLRenderer({ canvas });
+      renderer.setSize(360, 220);
+
+      const sceneThree = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, 360 / 220, 0.1, 1000);
+      camera.position.set(0, 2, 5);
+
+      const geometry = new THREE.BoxGeometry();
+      const material = new THREE.MeshBasicMaterial({ color: scene.dominantColor || 0xffffff });
+      const cube = new THREE.Mesh(geometry, material);
+      sceneThree.add(cube);
+
+      const animate = () => {
+        requestAnimationFrame(animate);
+        cube.rotation.x += 0.01;
+        cube.rotation.y += 0.01;
+        renderer.render(sceneThree, camera);
+      };
+
+      animate();
+    };
+  </script>
+</body>
+</html>
