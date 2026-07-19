@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Systems Engineering V-Model &mdash; Stepper</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f6f5f0;
+    --line:#c9cdd6;
+    --line-strong:#8b93a3;
+    --ink:#1d2b3a;
+    --ink-soft:#4d5b6c;
+    --blue:#1d4e6b;
+    --blue-fill:#e4edf1;
+    --teal:#1e5c4f;
+    --teal-fill:#e2efe9;
+    --gray-fill:#eceae2;
+    --accent:#b5502f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:28px 28px;
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+  }
+  .sheet{
+    max-width:880px;
+    margin:0 auto;
+    padding:32px 24px 60px;
+  }
+  .titleblock{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:14px;
+    margin-bottom:32px;
+  }
+  .titleblock h1{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:22px;
+    letter-spacing:0.02em;
+    margin:0;
+  }
+  .titleblock .doc{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    text-align:right;
+    line-height:1.6;
+  }
+
+  .rail{
+    position:relative;
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:8px;
+    padding:0 4px;
+  }
+  .rail::before{
+    content:"";
+    position:absolute;
+    top:9px;
+    left:20px;
+    right:20px;
+    height:2px;
+    background:var(--line-strong);
+    z-index:0;
+  }
+  .rail-fill{
+    position:absolute;
+    top:9px;
+    left:20px;
+    height:2px;
+    background:var(--accent);
+    z-index:1;
+    transition:width .25s ease;
+  }
+  .dot-wrap{
+    position:relative;
+    z-index:2;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    cursor:pointer;
+    background:none;
+    border:none;
+    padding:0;
+    font-family:inherit;
+    flex:1;
+  }
+  .dot{
+    width:20px;height:20px;border-radius:50%;
+    background:var(--paper);
+    border:2px solid var(--line-strong);
+    transition:all .15s ease;
+  }
+  .dot-wrap.done .dot{background:var(--line-strong);border-color:var(--line-strong);}
+  .dot-wrap.active .dot{background:var(--accent);border-color:var(--accent);width:22px;height:22px;}
+  .dot-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    color:var(--ink-soft);
+    text-align:center;
+    line-height:1.3;
+    max-width:78px;
+  }
+  .dot-wrap.active .dot-label{color:var(--ink);font-weight:600;}
+
+  .stage-side{
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    color:var(--line-strong);
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    margin-bottom:26px;
+  }
+
+  .panel{
+    border:1px solid var(--line);
+    background:rgba(255,255,255,0.5);
+    border-radius:3px;
+    padding:26px 28px 22px;
+  }
+  .detail-header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    border-left:4px solid var(--stage-color, var(--blue));
+    padding-left:14px;
+    margin-bottom:6px;
+  }
+  .detail-header .code{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .detail-header h2{
+    font-size:24px;
+    font-weight:500;
+    margin:0;
+  }
+  .detail-sub{
+    color:var(--ink-soft);
+    margin:0 0 18px 18px;
+    font-size:14px;
+  }
+  .traceline{
+    margin:0 0 22px 18px;
+    padding:10px 14px;
+    background:var(--gray-fill);
+    border:1px solid var(--line);
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+  ol.steps{
+    list-style:none;
+    counter-reset:step;
+    margin:0 0 0 18px;
+    padding:0;
+  }
+  ol.steps li{
+    counter-increment:step;
+    display:flex;
+    gap:14px;
+    padding:13px 0;
+    border-top:1px solid var(--line);
+  }
+  ol.steps li:last-child{border-bottom:1px solid var(--line);}
+  ol.steps li::before{
+    content:counter(step, decimal-leading-zero);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--stage-color, var(--blue));
+    flex:0 0 28px;
+    padding-top:2px;
+  }
+  ol.steps li .txt strong{
+    display:block;
+    font-weight:500;
+    font-size:15px;
+    margin-bottom:2px;
+  }
+  ol.steps li .txt span{
+    font-size:13.5px;
+    color:var(--ink-soft);
+    line-height:1.55;
+  }
+
+  .nav{
+    display:flex;
+    justify-content:space-between;
+    margin-top:22px;
+  }
+  .nav button{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--ink);
+    background:none;
+    border:1px solid var(--line-strong);
+    padding:9px 16px;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .nav button:hover:not(:disabled){background:var(--gray-fill);}
+  .nav button:disabled{opacity:0.35;cursor:default;}
+  .nav button.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  .nav button.primary:hover{background:var(--blue);}
+
+  footer{
+    margin-top:40px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    color:var(--ink-soft);
+    border-top:1px solid var(--line);
+    padding-top:10px;
+  }
+
+  @media (max-width:640px){
+    .dot-label{display:none;}
+    .rail{padding:0;}
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="titleblock">
+    <h1>Systems Engineering &mdash; V-Model</h1>
+    <div class="doc">Stepper walkthrough<br>Use next / back or click a dot</div>
+  </div>
+
+  <div class="rail" id="rail">
+    <div class="rail-fill" id="rail-fill"></div>
+  </div>
+  <div class="stage-side" id="stage-side">left arm &middot; decomposition</div>
+
+  <div class="panel">
+    <div id="detail-content"></div>
+    <div class="nav">
+      <button id="btn-prev" onclick="go(-1)">&larr; back</button>
+      <button id="btn-next" class="primary" onclick="go(1)">next &rarr;</button>
+    </div>
+  </div>
+
+  <footer>SE-VMODEL-001 &nbsp;&middot;&nbsp; rev A &middot; stepper view</footer>
+</div>
+
+<script>
+const ORDER = ["requirements","architecture","detaildesign","implementation","unittest","systemtest","validation"];
+const SIDE = {
+  requirements:"left arm \u00b7 decomposition",
+  architecture:"left arm \u00b7 decomposition",
+  detaildesign:"left arm \u00b7 decomposition",
+  implementation:"vertex \u00b7 build",
+  unittest:"right arm \u00b7 verification",
+  systemtest:"right arm \u00b7 verification",
+  validation:"right arm \u00b7 verification"
+};
+
+const DATA = {
+  requirements:{
+    label:"Requirements", code:"L0", color:"var(--blue)",
+    sub:"Turns stakeholder needs into engineerable, verifiable statements.",
+    trace:"Traces forward to Validation (last stage) \u2014 the delivered system is checked against these same needs.",
+    steps:[
+      ["Stakeholder needs identification","Gather inputs from customers, users, operators, and other stakeholders"],
+      ["Mission/operational analysis (ConOps)","Define how the system will be used, in what environment, and by whom"],
+      ["Requirements elicitation","Draw out explicit and implicit needs through interviews, workshops, surveys, existing systems"],
+      ["Requirements analysis","Check needs for completeness, consistency, feasibility, and testability"],
+      ["Requirements specification","Write formal, verifiable requirement statements (the \"shall\" statements)"],
+      ["Requirements allocation","Assign requirements to system elements or defer them to later decomposition"],
+      ["Requirements categorization","Sort into functional, performance, interface, environmental, safety, and constraint types"],
+      ["Requirements traceability","Link each requirement back to its source need and forward to design and test"],
+      ["Requirements validation","Confirm with stakeholders that the specified requirements reflect their real needs"],
+      ["Requirements baseline & management","Freeze an agreed set of requirements, then control changes formally"],
+      ["Requirements review","Formal checkpoint (System Requirements Review) before architecture design"]
+    ]
+  },
+  architecture:{
+    label:"Architecture", code:"L1", color:"var(--blue)",
+    sub:"Turns the \"what\" from requirements into a structural and functional plan.",
+    trace:"Traces forward to System test \u2014 integration checks that this functional allocation and these interfaces actually hold together.",
+    steps:[
+      ["Functional analysis & allocation","Decompose top-level functions into sub-functions, allocate to elements"],
+      ["Architecture definition","Define the logical architecture (functions, data flows) and physical architecture"],
+      ["Interface definition","Identify and specify interfaces between subsystems and the external environment (ICDs)"],
+      ["Trade studies","Evaluate alternative architectures against cost, performance, risk, and schedule"],
+      ["Concept/architecture synthesis","Combine functional and physical views into a coherent system concept"],
+      ["Requirements allocation & flow-down","Push system-level requirements down to subsystem and component level"],
+      ["Modeling & simulation","Build architecture models (e.g. SysML) to check feasibility early"],
+      ["Design constraints analysis","Factor in standards, safety, reliability, and manufacturability constraints"],
+      ["Architecture review","Formal checkpoint (System Design Review / PDR) before detailed design"]
+    ]
+  },
+  detaildesign:{
+    label:"Detail design", code:"L2", color:"var(--blue)",
+    sub:"Turns the architecture into buildable specifications.",
+    trace:"Traces forward to Unit test \u2014 each unit is verified against exactly this design.",
+    steps:[
+      ["Subsystem design","Refine each subsystem defined in the architecture into a complete, buildable design"],
+      ["Component design","Design individual parts, modules, or software units for fabrication or coding"],
+      ["Detailed interface design","Finalize ICDs for every interface: connector pinouts, protocols, API signatures"],
+      ["Design analysis","Stress, thermal, timing, power, or performance analysis against allocated requirements"],
+      ["Design for manufacturability","Adjust the design so it can be built, assembled, or coded efficiently"],
+      ["Design for reliability & safety","Factor in failure modes (FMEA), redundancy, serviceability, safety margins"],
+      ["Make/buy analysis","Decide which components are custom-built versus sourced commercially (COTS)"],
+      ["Design verification planning","Define how each design element will later be tested"],
+      ["Prototyping","Build early mockups or breadboards to retire design risk"],
+      ["Design documentation","Drawings, schematics, source code specs, bill of materials"],
+      ["Critical Design Review (CDR)","Formal checkpoint confirming the design is ready for implementation"]
+    ]
+  },
+  implementation:{
+    label:"Implementation", code:"vertex", color:"var(--ink-soft)",
+    sub:"Where design becomes a physical or coded reality.",
+    trace:"Everything from the left arm converges here; everything on the right arm verifies what gets built here.",
+    steps:[
+      ["Procurement/purchasing","Source raw materials, COTS components, or subcontracted parts"],
+      ["Fabrication","Machine, mold, print, or otherwise manufacture physical parts"],
+      ["Coding/software implementation","Write and build source code from the detailed design specs"],
+      ["Component assembly","Assemble fabricated parts and purchased components into subsystems"],
+      ["Manufacturing process planning","Define tooling, work instructions, and production sequencing"],
+      ["Quality control & inspection","Check incoming parts and in-process work against tolerances and specs"],
+      ["Configuration control","Track exactly which design revision, part version, or build was produced"],
+      ["Unit fabrication/build records","Document what was built, by whom, and how, for later verification"],
+      ["Environmental/safety compliance","Ensure manufacturing meets regulatory, safety, and handling requirements"],
+      ["First article inspection","Verify the first built unit conforms to design before full production"]
+    ]
+  },
+  unittest:{
+    label:"Unit test", code:"R2", color:"var(--teal)",
+    sub:"The first checkpoint climbing the right arm.",
+    trace:"Traces back to Detail design \u2014 verifies what was built matches the detailed design.",
+    steps:[
+      ["Test planning","Define test cases directly from the detailed design specs and verification plan"],
+      ["Unit/component test execution","Run each fabricated part or coded module against its design specification"],
+      ["Functional testing","Confirm each component performs its intended function in isolation"],
+      ["Performance testing","Check timing, throughput, power draw, or other quantitative parameters"],
+      ["Boundary/stress testing","Test components at or beyond their specified operating limits"],
+      ["Code unit testing","For software, run automated unit tests against individual functions or modules"],
+      ["Inspection & measurement","Physically inspect fabricated parts against drawings and tolerances"],
+      ["Defect logging & rework","Track failures found at the unit level and route back for rework"],
+      ["Test result documentation","Record pass/fail evidence tied to the specific design requirement"],
+      ["Component acceptance","Sign off that each unit is ready for subsystem/system integration"]
+    ]
+  },
+  systemtest:{
+    label:"System test", code:"R1", color:"var(--teal)",
+    sub:"Combines and verifies subsystems and interfaces across the whole system.",
+    trace:"Traces back to Architecture \u2014 checks that the functional allocation and interfaces defined there actually hold together.",
+    steps:[
+      ["Integration planning","Define the sequence for combining subsystems, based on architecture and interfaces"],
+      ["Subsystem integration","Physically or logically combine verified components into subsystems"],
+      ["System integration","Combine all subsystems into the complete system"],
+      ["Interface verification","Confirm every ICD defined during architecture design works as specified"],
+      ["Integration testing","Test combined subsystems against functional and performance requirements"],
+      ["Regression testing","Re-test previously verified interfaces or functions after each new addition"],
+      ["Anomaly/defect tracking","Log, triage, and resolve issues found during integration"],
+      ["Test data & environment management","Maintain test rigs, simulators, or benches replicating operations"],
+      ["Configuration audit","Confirm the integrated system matches the architecture baseline"],
+      ["Test readiness review (TRR)","Formal checkpoint confirming readiness for full validation"]
+    ]
+  },
+  validation:{
+    label:"Validation", code:"R0", color:"var(--teal)",
+    sub:"The final check that the system meets stakeholder needs before handover.",
+    trace:"Traces back to Requirements \u2014 closes the loop on the whole V.",
+    steps:[
+      ["System verification","Confirm the system meets its specified requirements \u2014 \"built it right\""],
+      ["System validation","Confirm the system meets the original stakeholder needs \u2014 \"built the right thing\""],
+      ["Acceptance testing","Formal, often customer-witnessed testing against acceptance criteria"],
+      ["Operational test & evaluation (OT&E)","Test the system in a realistic operational environment"],
+      ["Qualification testing","Verify environmental, safety, and performance limits (temperature, vibration, EMI)"],
+      ["Certification/regulatory compliance","Obtain any required certifications or regulatory sign-offs"],
+      ["User/customer sign-off","Formal acceptance and approval by the customer or end user"],
+      ["Discrepancy/anomaly resolution","Track and resolve deviations found during validation"],
+      ["Transition to operations","Handover to operations and support, including training and documentation"],
+      ["Post-validation review","Final review (Acceptance / Operational Readiness Review) closing the cycle"]
+    ]
+  }
+};
+
+let current = 0;
+
+function buildRail(){
+  const rail = document.getElementById('rail');
+  ORDER.forEach(function(key, i){
+    const d = DATA[key];
+    const btn = document.createElement('button');
+    btn.className = 'dot-wrap';
+    btn.dataset.index = i;
+    btn.onclick = function(){ current = i; render(); };
+    btn.innerHTML = '<span class="dot"></span><span class="dot-label">'+d.label+'</span>';
+    rail.appendChild(btn);
+  });
+}
+
+function render(){
+  const wraps = document.querySelectorAll('.dot-wrap');
+  wraps.forEach(function(w, i){
+    w.classList.remove('active','done');
+    if(i < current) w.classList.add('done');
+    if(i === current) w.classList.add('active');
+  });
+  const pct = (current / (ORDER.length - 1)) * 100;
+  document.getElementById('rail-fill').style.width = 'calc(' + pct + '% )';
+
+  const key = ORDER[current];
+  const d = DATA[key];
+  document.getElementById('stage-side').textContent = SIDE[key];
+
+  let html = '';
+  html += '<div class="detail-header" style="--stage-color:'+d.color+'"><h2>'+d.label+'</h2><span class="code">'+d.code+'</span></div>';
+  html += '<p class="detail-sub">'+d.sub+'</p>';
+  html += '<div class="traceline">'+d.trace+'</div>';
+  html += '<ol class="steps" style="--stage-color:'+d.color+'">';
+  d.steps.forEach(function(s){
+    html += '<li><div class="txt"><strong>'+s[0]+'</strong><span>'+s[1]+'</span></div></li>';
+  });
+  html += '</ol>';
+  document.getElementById('detail-content').innerHTML = html;
+
+  document.getElementById('btn-prev').disabled = current === 0;
+  const nextBtn = document.getElementById('btn-next');
+  nextBtn.disabled = current === ORDER.length - 1;
+  nextBtn.textContent = current === ORDER.length - 1 ? 'end of cycle' : 'next \u2192';
+
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function go(delta){
+  const next = current + delta;
+  if(next < 0 || next > ORDER.length - 1) return;
+  current = next;
+  render();
+}
+
+buildRail();
+render();
+</script>
+</body>
+</html>
